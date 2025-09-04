@@ -1,0 +1,28 @@
+name: Daily Trading Run
+on:
+  schedule:
+    - cron: "0 22 * * 1-5"   # Mon–Fri 22:00 UTC
+  workflow_dispatch:
+
+jobs:
+  run-trading:
+    runs-on: ubuntu-latest
+    env:
+      MODEL_NAME: gpt-4o-mini
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt || true
+      - run: pip install openai
+      - name: Run trading (fallback to simple)
+        run: |
+          python trading_script.py || python simple_automation.py --model "$MODEL_NAME"
+      - name: Commit results
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add -A
+          git commit -m "Automated daily run" || echo "No changes"
+          git push
